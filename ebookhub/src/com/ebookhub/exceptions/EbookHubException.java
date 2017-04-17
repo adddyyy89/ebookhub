@@ -11,6 +11,10 @@ public class EbookHubException extends Exception {
 		this.message = message;
 	}
 
+	public EbookHubException(Throwable ex) {
+		super(ex);
+	}
+
 	public EbookHubException(String message, Throwable ex) {
 		super(message, ex);
 		this.message = message;

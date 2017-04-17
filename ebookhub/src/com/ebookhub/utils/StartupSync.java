@@ -4,12 +4,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
 
-import com.ebookhub.exceptions.EbookHubException;
 import com.ebookhub.exceptions.SetupException;
+import com.ebookhub.hibernate.dto.BookDTO;
+import com.ebookhub.hibernate.model.BookModel;
 
 /**
  * This should run on application startup
@@ -33,6 +38,8 @@ public class StartupSync {
 
 	static String root_directory;
 
+	static File rootDir;
+
 	final static String PROPERTIES_PATH = "src\\ebookhub.properties";
 
 	final static String EBOOK_DIRECTORY_ROOT = "ebook.directory.root";
@@ -55,7 +62,7 @@ public class StartupSync {
 			healthy = true;
 
 			logger.info("StartupSync completed - System is good and Database is in sync");
-		} catch (EbookHubException ex) {
+		} catch (SetupException ex) {
 			logger.error("Unable to setup due to - " + ex.getMessage());
 		}
 
@@ -65,7 +72,7 @@ public class StartupSync {
 		logger.info("StartupSync.checkProperties called");
 
 		try {
-			File file = new File("PROPERTIES_PATH");
+			File file = new File(PROPERTIES_PATH);
 			properties = new Properties();
 			properties.load(new FileInputStream(file.getAbsolutePath()));
 
@@ -97,14 +104,54 @@ public class StartupSync {
 		logger.info("StartupSync.checkProperties completed");
 	}
 
-	private static void testDBConnection() {
+	private static void testDBConnection() throws SetupException {
 		logger.info("StartupSync.testDBConnection called");
-
+		Session session = HibernateUtil.getSessionFactory().openSession();
+		if (null == session) {
+			throw new SetupException("Unable to initialize Hibernate. Check database properties");
+		}
+		session.close();
 		logger.info("StartupSync.testDBConnection completed");
 	}
 
-	private static void syncDB() {
+	private static void syncDB() throws SetupException {
 		logger.info("StartupSync.syncDB called");
+
+		List<BookDTO> ebooks = FileUtil.getBooks(rootDir);
+
+		Session session = HibernateUtil.getSessionFactory().openSession();
+		List<BookDTO> ebooksInDB = new BookModel().list(session);
+
+		BookModel model = new BookModel();
+
+		// Remove all common books from ebooks and ebooksInDB
+		Iterator<BookDTO> ebooksItr = ebooks.listIterator();
+		Iterator<BookDTO> ebooksInDBItr = ebooksInDB.listIterator();
+
+		while (ebooksItr.hasNext()) {
+			BookDTO bookDTO = ebooksItr.next();
+			while (ebooksInDBItr.hasNext()) {
+				BookDTO bookDB = ebooksInDBItr.next();
+				if (bookDTO.compareTo(bookDB) == 0) {
+					ebooksItr.remove();
+					ebooksInDBItr.remove();
+				}
+			}
+		}
+
+		// Delete missing entries ebooksInDB from db
+		Transaction tx = session.beginTransaction();
+		for (BookDTO ebookDB : ebooksInDB) {
+			model.delete(session, ebookDB);
+		}
+		tx.commit();
+
+		// Add new entries ebooks to db
+		tx = session.beginTransaction();
+		for (BookDTO ebook : ebooks) {
+			model.add(session, ebook);
+		}
+		tx.commit();
 
 		logger.info("StartupSync.syncDB completed");
 	}
