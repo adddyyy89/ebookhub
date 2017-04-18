@@ -27,7 +27,7 @@ class BookEntity implements Serializable {
 	@Column(name = "location", nullable = false)
 	private String location;
 
-	@Column(name = "udpatetimestamp", nullable = false)
+	@Column(name = "updatetimestamp", nullable = false)
 	private Timestamp updateTimestamp;
 
 	@Column(name = "views", nullable = false)

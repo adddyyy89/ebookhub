@@ -87,7 +87,7 @@ public class StartupSync {
 				throw new SetupException("ebookhub.properties - Entry Missing - ebook root directory not specified");
 			}
 
-			File rootDir = new File(root_directory);
+			rootDir = new File(root_directory);
 			if (null == rootDir || rootDir.isFile()) {
 				throw new SetupException(
 						"ebookhub.properties - Invalid Entry - ebook root directory has invalid entry");

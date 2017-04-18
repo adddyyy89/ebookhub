@@ -5,7 +5,7 @@
 <hibernate-configuration>
 	<session-factory>
 		<property name="hibernate.connection.username">postgres</property>
-		<property name="hibernate.connection.password">admin@1234</property>
+		<property name="hibernate.connection.password">admin</property>
 
 		<!-- Postgres SQL -->
 		<property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
